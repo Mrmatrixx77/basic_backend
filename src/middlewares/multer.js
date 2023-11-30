@@ -9,6 +9,6 @@ const storage = multer.diskStorage({
   },
 });
 
-export const multer = ({
+export const upload =multer({
     storage:storage
 })
