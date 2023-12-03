@@ -1,7 +1,7 @@
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {apiErrors} from "../utils/apierror.js"
 import {User} from "../models/user.model.js"
-import {uploadOnCloudinary} from "../utils/cloudinary"
+import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/apiresponse.js"
 
 const registerUser = asyncHandler( async(req,res) =>{
@@ -9,18 +9,20 @@ const registerUser = asyncHandler( async(req,res) =>{
 
 
     //validation - not empty
-    const {fullName,email,username,password} = res.body;
+    const {fullName,email,username,password} = req.body;
     console.log("fullname:", fullName, "email: ",email)
 
     //check if user already exists : email,username
 
-    if([fullName,email,username,password].some((fields) => fields?.trim() === "")){
-        throw new apiErrors(400,"all fields required");
+    if (
+        [fullName, email, username, password].some((field) => field?.trim() === "")
+    ) {
+        throw new apiErrors(400, "All fields are required")
     }
 
     //check for images , avatar
-    const userExist = await user.findOne({
-        $or: [{email},{username}]
+    const userExist = await User.findOne({
+        $or: [{username},{email}]
     })
 
     if(userExist){
@@ -29,7 +31,10 @@ const registerUser = asyncHandler( async(req,res) =>{
     const avatarLocalPath = req.files?.avatar[0]?.path;
     console.log("req.files:",req.files)
 
-    const coverLocalPath = req.files?.cover[0]?.path;
+    let coverLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverLocalPath = req.files.coverImage[0].path
+    }
 
     if(!avatarLocalPath){
         throw new apiErrors(400,"avatar is required")
@@ -56,7 +61,10 @@ const registerUser = asyncHandler( async(req,res) =>{
     })
     //remove password and refresh tokens from response
 
-    const createdUser = user.findById(user.id).selec(
+    // const createdUser = await user.findById(user.id).select(
+    //     "-password -refreshToken"
+    // )
+    const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
     //check user creation
